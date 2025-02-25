@@ -1,3 +1,10 @@
+mod display;
+mod sys_block;
+
+use sys_block::SysBlockInfo;
+
 fn main() {
-    println!("Hello, world!");
+    let sys_block_info = SysBlockInfo::new().ok().unwrap();
+
+    print!("{}", sys_block_info);
 }
