@@ -51,6 +51,11 @@ impl fmt::Display for SysBlockInfo {
                 for part in parts {
                     writeln!(f, "    ⛉ {}", part.name)?;
                     writeln!(f, "      • Size: {}", readable_size_from(part.info.size))?;
+                    writeln!(
+                        f,
+                        "      • Removable: {}",
+                        if part.info.removable { "Yes" } else { "No" }
+                    )?;
                 }
             }
         }
@@ -93,11 +98,11 @@ impl fmt::Display for ProcMountsInfo {
             writeln!(f)?; // Extra line
             writeln!(f, "⛉ {}", device.name)?;
 
-            let mount_point = &device.mount_point;
-            writeln!(f, "  • Mount Point: {mount_point}")?;
-
             let fstype = &device.fstype;
             writeln!(f, "  • Filesystem: {fstype}")?;
+
+            let mount_point = &device.mount_point;
+            writeln!(f, "  • Mount Point: {mount_point}")?;
         }
 
         Ok(())

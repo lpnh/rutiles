@@ -16,21 +16,24 @@ pub struct SysBlockEntries {
 #[derive(Debug)]
 pub struct SysBlockDeviceEntries {
     pub model: String,
-    pub removable: bool,
     pub size: u64,
+    pub removable: bool,
 }
 
 // `/sys/block/{device}/{partition}/` entries
+// Partitions doesn't seem to have a `removable` entry
+//     so we "manually" propagate the value its device
 #[derive(Debug)]
 pub struct SysBlockPartitionEntries {
-    pub size: u64, // It seems `size` is the only relevant information
+    pub size: u64,
+    pub removable: bool,
 }
 
 // Information abstraction for each partition
 #[derive(Debug)]
 pub struct SysBlockPartition {
-    pub name: String,                   // e.g. `"sda1"`
-    pub info: SysBlockPartitionEntries, // For now, only its size
+    pub name: String, // e.g. `"sda1"`
+    pub info: SysBlockPartitionEntries,
 }
 
 // Information abstraction for each device
@@ -82,13 +85,23 @@ impl SysBlockDevice {
             .to_string_lossy()
             .to_string();
 
+        let model = read_device_model(block_device)?;
+        let size = read_size(block_device)?;
+        let removable = read_removable(block_device)?;
+
+        let info = SysBlockDeviceEntries {
+            model,     // from `/sys/block/{device}/device/model`
+            size,      // from `/sys/block/{device}/size`
+            removable, // from `/sys/block/{device}/removable`
+        };
+
         // Create partition array from `/sys/block/{device}` entries
         let partition = fs::read_dir(block_device)?
             .filter_map(Result::ok)
             // Into String... So we can use `starts_with`
             .map(|e| e.file_name().to_string_lossy().to_string())
             .filter(|entry| entry.starts_with(&name))
-            .map(|part_name| SysBlockPartition::new(block_device, &part_name))
+            .map(|part_name| SysBlockPartition::new(block_device, &part_name, removable))
             .collect::<Result<Vec<SysBlockPartition>>>()?;
 
         let part = if partition.is_empty() {
@@ -97,34 +110,25 @@ impl SysBlockDevice {
             Some(partition)
         };
 
-        let size = read_size(block_device)?;
-        let removable = read_removable(block_device)?;
-        let model = read_device_model(block_device)?;
-
-        let info = SysBlockDeviceEntries {
-            model,     // from `/sys/block/{device}/device/model`
-            removable, // from `/sys/block/{device}/removable`
-            size,      // from `/sys/block/{device}/size`
-        };
-
         Ok(Self { name, info, part })
     }
 }
 
 impl SysBlockPartition {
-    fn new(dev_path: &Path, part_name: &str) -> Result<Self> {
+    fn new(dev_path: &Path, part_name: &str, removable: bool) -> Result<Self> {
         Ok(Self {
             name: part_name.to_string(),
-            info: SysBlockPartitionEntries::new(dev_path, part_name)?,
+            info: SysBlockPartitionEntries::new(dev_path, part_name, removable)?,
         })
     }
 }
 
 impl SysBlockPartitionEntries {
-    fn new(dev_path: &Path, part_name: &str) -> Result<Self> {
+    fn new(dev_path: &Path, part_name: &str, removable: bool) -> Result<Self> {
         let size = read_size(&dev_path.join(part_name))?;
         Ok(Self {
-            size, // from `/sys/block/{device}/{partition}/size`
+            size,      // from `/sys/block/{device}/{partition}/size`
+            removable, // propagated from `/sys/block/{device}/removable`
         })
     }
 }
