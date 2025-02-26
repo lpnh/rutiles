@@ -1,5 +1,6 @@
 use std::fmt;
 
+use super::dev_disk::DevDiskInfo;
 use super::sys_block::SysBlockInfo;
 
 impl fmt::Display for SysBlockInfo {
@@ -34,7 +35,7 @@ impl fmt::Display for SysBlockInfo {
         writeln!(f, "=================")?;
         for device in &self.info {
             writeln!(f)?; // Extra line
-            writeln!(f, " {}", device.name)?;
+            writeln!(f, "⛊ {}", device.name)?;
             writeln!(f, " • Model: {}", device.info.model)?;
             writeln!(f, " • Size: {}", readable_size_from(device.info.size))?;
             writeln!(
@@ -47,11 +48,36 @@ impl fmt::Display for SysBlockInfo {
             if let Some(parts) = &device.part {
                 writeln!(f, " • Partitions:")?;
                 for part in parts {
-                    writeln!(f, "     {}", part.name)?;
+                    writeln!(f, "    ⛉ {}", part.name)?;
                     writeln!(f, "      • Size: {}", readable_size_from(part.info.size))?;
                 }
             }
         }
+        Ok(())
+    }
+}
+
+impl fmt::Display for DevDiskInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f)?; // Extra line
+        writeln!(f, "from `/dev/disk`")?;
+        writeln!(f, "================")?;
+
+        for device in &self.info {
+            writeln!(f)?; // Extra line
+            writeln!(f, "⛉ {}", device.name)?;
+
+            if let Some(label) = &device.label {
+                writeln!(f, "  • Label: {label}")?;
+            }
+
+            if let Some(uuid_vec) = &device.uuid {
+                for uuid in uuid_vec {
+                    writeln!(f, "  • UUID: {uuid}")?;
+                }
+            }
+        }
+
         Ok(())
     }
 }
