@@ -52,8 +52,8 @@ impl CombinedDeviceInfo {
 
             // Add information from `/dev/disk`
             if let Some(dev_device) = dev_disk.info.iter().find(|d| d.name == sys_block.name) {
-                combined_device.label = dev_device.label.clone();
-                combined_device.uuids = dev_device.uuid.clone();
+                combined_device.label.clone_from(&dev_device.label);
+                combined_device.uuids.clone_from(&dev_device.uuid);
             }
 
             // Add information from `/proc/mounts`
@@ -76,8 +76,8 @@ impl CombinedDeviceInfo {
                     };
 
                     if let Some(dev_part) = dev_disk.info.iter().find(|d| d.name == part.name) {
-                        combined_partition.label = dev_part.label.clone();
-                        combined_partition.uuids = dev_part.uuid.clone();
+                        combined_partition.label.clone_from(&dev_part.label);
+                        combined_partition.uuids.clone_from(&dev_part.uuid);
                     }
 
                     if let Some(proc_part) = proc_mounts.info.iter().find(|d| d.name == part.name) {
@@ -175,7 +175,7 @@ fn format_common_fields(
         writeln!(f, "{indent}• Filesystem: {filesystem}")?;
     }
     if let Some(label) = label {
-        writeln!(f, "{indent}• Label: {}", label)?;
+        writeln!(f, "{indent}• Label: {label}")?;
     }
     if let Some(mount_point) = mount_point {
         writeln!(f, "{indent}• Mount Point: {mount_point}")?;

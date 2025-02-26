@@ -31,7 +31,7 @@ impl ProcMountsInfo {
                     let trimmed_name = dev_name
                         .strip_prefix("/dev/")
                         .expect("starts_with guaranteed");
-                    let entry = ProcMounts::new(trimmed_name, fields[1], fields[2])?;
+                    let entry = ProcMounts::new(trimmed_name, fields[1], fields[2]);
                     info.push(entry);
                 }
             }
@@ -41,11 +41,11 @@ impl ProcMountsInfo {
 }
 
 impl ProcMounts {
-    fn new(name: &str, mount_point: &str, fstype: &str) -> Result<Self> {
-        Ok(Self {
+    fn new(name: &str, mount_point: &str, fstype: &str) -> Self {
+        Self {
             name: name.into(),
             mount_point: mount_point.into(),
             fstype: fstype.into(),
-        })
+        }
     }
 }

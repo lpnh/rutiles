@@ -22,6 +22,6 @@ fn main() {
         CombinedDeviceInfo::new(&sys_block_info, &dev_disk_info, &proc_mounts_info);
 
     for device in combined_device_info {
-        println!("{}", device);
+        println!("{device}");
     }
 }
