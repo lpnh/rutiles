@@ -4,6 +4,11 @@ use super::sys_block::SysBlockInfo;
 
 impl fmt::Display for SysBlockInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        #[allow(
+            clippy::cast_sign_loss,
+            clippy::cast_precision_loss,
+            clippy::cast_possible_truncation
+        )]
         fn readable_size_from(size: u64) -> String {
             const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
             let mut size = size as f64;

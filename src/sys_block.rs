@@ -102,12 +102,12 @@ impl SysBlockDevice {
         let model = read_device_model(block_device)?;
 
         let info = SysBlockDeviceEntries {
-            size,      // from `/sys/block/{device}/size`
-            removable, // from `/sys/block/{device}/removable`
             model,     // from `/sys/block/{device}/device/model`
+            removable, // from `/sys/block/{device}/removable`
+            size,      // from `/sys/block/{device}/size`
         };
 
-        Ok(Self { name, part, info })
+        Ok(Self { name, info, part })
     }
 }
 
