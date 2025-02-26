@@ -48,7 +48,7 @@ pub struct SysBlockInfo {
 }
 
 impl SysBlockInfo {
-    pub fn new() -> Result<SysBlockInfo> {
+    pub fn new() -> Result<Self> {
         let block_devices = SysBlockEntries::new()?;
         let mut info = Vec::new();
 
@@ -61,7 +61,7 @@ impl SysBlockInfo {
 }
 
 impl SysBlockEntries {
-    pub fn new() -> Result<SysBlockEntries> {
+    pub fn new() -> Result<Self> {
         let mut block_devices = Vec::<PathBuf>::new();
 
         for entry in fs::read_dir("/sys/block")? {
@@ -74,7 +74,7 @@ impl SysBlockEntries {
 }
 
 impl SysBlockDevice {
-    pub fn new(block_device: &Path) -> Result<SysBlockDevice> {
+    pub fn new(block_device: &Path) -> Result<Self> {
         // Extract device name from Path
         let name = block_device
             .file_name()
@@ -112,7 +112,7 @@ impl SysBlockDevice {
 }
 
 impl SysBlockPartition {
-    fn new(dev_path: &Path, part_name: &str) -> Result<SysBlockPartition> {
+    fn new(dev_path: &Path, part_name: &str) -> Result<Self> {
         Ok(Self {
             name: part_name.to_string(),
             info: SysBlockPartitionEntries::new(dev_path, part_name)?,
@@ -121,7 +121,7 @@ impl SysBlockPartition {
 }
 
 impl SysBlockPartitionEntries {
-    fn new(dev_path: &Path, part_name: &str) -> Result<SysBlockPartitionEntries> {
+    fn new(dev_path: &Path, part_name: &str) -> Result<Self> {
         let size = read_size(&dev_path.join(part_name))?;
         Ok(Self {
             size, // from `/sys/block/{device}/{partition}/size`
