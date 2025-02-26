@@ -1,6 +1,7 @@
 use std::fmt;
 
 use super::dev_disk::DevDiskInfo;
+use super::proc_mounts::ProcMountsInfo;
 use super::sys_block::SysBlockInfo;
 
 impl fmt::Display for SysBlockInfo {
@@ -76,6 +77,27 @@ impl fmt::Display for DevDiskInfo {
                     writeln!(f, "  • UUID: {uuid}")?;
                 }
             }
+        }
+
+        Ok(())
+    }
+}
+
+impl fmt::Display for ProcMountsInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f)?; // Extra line
+        writeln!(f, "from `/proc/mounts`")?;
+        writeln!(f, "===================")?;
+
+        for device in &self.info {
+            writeln!(f)?; // Extra line
+            writeln!(f, "⛉ {}", device.name)?;
+
+            let mount_point = &device.mount_point;
+            writeln!(f, "  • Mount Point: {mount_point}")?;
+
+            let fstype = &device.fstype;
+            writeln!(f, "  • Filesystem: {fstype}")?;
         }
 
         Ok(())
