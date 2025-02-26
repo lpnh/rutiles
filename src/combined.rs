@@ -33,12 +33,12 @@ impl CombinedDeviceInfo {
         sys_block: &SysBlockInfo,
         dev_disk: &DevDiskInfo,
         proc_mounts: &ProcMountsInfo,
-    ) -> Vec<CombinedDeviceInfo> {
+    ) -> Vec<Self> {
         let mut combined_info = Vec::new();
 
         // Start with the information from `/sys/block`
         for sys_block in &sys_block.info {
-            let mut combined_device = CombinedDeviceInfo {
+            let mut combined_device = Self {
                 name: sys_block.name.clone(),
                 model: Some(sys_block.info.model.clone()),
                 size: Some(sys_block.info.size),
