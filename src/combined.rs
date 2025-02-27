@@ -1,6 +1,8 @@
 use std::fmt;
+use tracing::warn;
 
 use super::dev_disk::DevDiskInfo;
+use super::magic::get_fstype_with_magic;
 use super::proc_mounts::ProcMountsInfo;
 use super::sys_block::SysBlockInfo;
 
@@ -51,18 +53,31 @@ impl CombinedDeviceInfo {
             };
 
             // Add information from `/dev/disk`
-            if let Some(dev_device) = dev_disk.info.iter().find(|d| d.name == sys_block.name) {
-                combined_device.label.clone_from(&dev_device.label);
-                combined_device.uuids.clone_from(&dev_device.uuid);
+            if let Some(dev_disk) = dev_disk.info.iter().find(|d| d.name == sys_block.name) {
+                combined_device.label.clone_from(&dev_disk.label);
+                combined_device.uuids.clone_from(&dev_disk.uuid);
             }
 
             // Add information from `/proc/mounts`
-            if let Some(proc_device) = proc_mounts.info.iter().find(|d| d.name == sys_block.name) {
-                combined_device.mount_point = Some(proc_device.mount_point.clone());
-                combined_device.filesystem = Some(proc_device.fstype.clone());
+            if let Some(proc_mounts) = proc_mounts.info.iter().find(|d| d.name == sys_block.name) {
+                combined_device.mount_point = Some(proc_mounts.mount_point.clone());
+                combined_device.filesystem = Some(proc_mounts.fstype.clone());
             }
 
-            // Same thing for partitions
+            // Fallback to magic numbers to find filesystem type
+            if combined_device.filesystem.is_none() && sys_block.part.is_none()
+            // && is_running_with_sudo()
+            {
+                combined_device.filesystem = match get_fstype_with_magic(&sys_block.name) {
+                    Ok(fs_type) => fs_type,
+                    Err(e) => {
+                        warn!("Failed to get fstype from signature: {e}");
+                        None
+                    }
+                }
+            }
+
+            // Same thing for partitions...
             if let Some(parts) = &sys_block.part {
                 for part in parts {
                     let mut combined_partition = CombinedPartitionInfo {
@@ -83,6 +98,23 @@ impl CombinedDeviceInfo {
                     if let Some(proc_part) = proc_mounts.info.iter().find(|d| d.name == part.name) {
                         combined_partition.mount_point = Some(proc_part.mount_point.clone());
                         combined_partition.filesystem = Some(proc_part.fstype.clone());
+                    }
+
+                    // if combined_partition.filesystem.is_none() && is_running_with_sudo() {
+                    //     combined_partition.filesystem = get_fstype_from_signature(&part.name);
+                    // }
+
+                    // Fallback to magic numbers to find filesystem type
+                    if combined_partition.filesystem.is_none()
+                    // && is_running_with_sudo()
+                    {
+                        combined_partition.filesystem = match get_fstype_with_magic(&part.name) {
+                            Ok(fs_type) => fs_type,
+                            Err(e) => {
+                                warn!("Failed to get fstype from signature: {e}");
+                                None
+                            }
+                        }
                     }
 
                     combined_device.partitions.push(combined_partition);

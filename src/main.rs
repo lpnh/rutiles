@@ -1,6 +1,7 @@
 mod combined;
 mod dev_disk;
 mod display;
+mod magic;
 mod proc_mounts;
 mod sys_block;
 
@@ -9,7 +10,14 @@ use dev_disk::DevDiskInfo;
 use proc_mounts::ProcMountsInfo;
 use sys_block::SysBlockInfo;
 
+use tracing_subscriber::{EnvFilter, fmt};
+
 fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_span_events(fmt::format::FmtSpan::CLOSE)
+        .init();
+
     let sys_block_info = SysBlockInfo::new().ok().unwrap();
     let dev_disk_info = DevDiskInfo::new().ok().unwrap();
     let proc_mounts_info = ProcMountsInfo::new().ok().unwrap();
