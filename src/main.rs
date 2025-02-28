@@ -23,19 +23,20 @@ fn main() {
     let sys_block_info = SysBlockInfo::new().ok().unwrap();
     let dev_disk_info = DevDiskInfo::new().ok().unwrap();
     let proc_mounts_info = ProcMountsInfo::new().ok().unwrap();
+    let fstab_info = FstabInfo::new().ok().unwrap();
 
     // print!("{sys_block_info}");
     // print!("{dev_disk_info}");
     // print!("{proc_mounts_info}");
 
-    let combined_device_info =
-        CombinedDeviceInfo::new(&sys_block_info, &dev_disk_info, &proc_mounts_info);
+    let combined_device_info = CombinedDeviceInfo::new(
+        &sys_block_info,
+        &dev_disk_info,
+        &proc_mounts_info,
+        &fstab_info,
+    );
 
     for device in combined_device_info {
         println!("{device}");
     }
-
-    let fstab_info = FstabInfo::new().ok().unwrap();
-
-    println!("{fstab_info}");
 }

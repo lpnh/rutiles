@@ -2,6 +2,7 @@ use std::fmt;
 use tracing::warn;
 
 use super::dev_disk::DevDiskInfo;
+use super::fstab::{Fstab, FstabInfo};
 use super::magic::get_fstype_with_magic;
 use super::proc_mounts::ProcMountsInfo;
 use super::sys_block::SysBlockInfo;
@@ -15,6 +16,7 @@ pub struct CombinedPartitionInfo {
     pub mount_point: Option<String>,
     pub removable: Option<bool>,
     pub uuids: Option<Vec<String>>,
+    pub fstab_entry: Option<Fstab>,
 }
 
 #[derive(Debug)]
@@ -27,6 +29,7 @@ pub struct CombinedDeviceInfo {
     pub mount_point: Option<String>,
     pub removable: Option<bool>,
     pub uuids: Option<Vec<String>>,
+    pub fstab_entry: Option<Fstab>,
     pub partitions: Vec<CombinedPartitionInfo>,
 }
 
@@ -35,6 +38,7 @@ impl CombinedDeviceInfo {
         sys_block: &SysBlockInfo,
         dev_disk: &DevDiskInfo,
         proc_mounts: &ProcMountsInfo,
+        fstab: &FstabInfo,
     ) -> Vec<Self> {
         let mut combined_info = Vec::new();
 
@@ -49,6 +53,7 @@ impl CombinedDeviceInfo {
                 mount_point: None,
                 removable: Some(sys_block.info.removable),
                 uuids: None,
+                fstab_entry: None,
                 partitions: Vec::new(),
             };
 
@@ -77,6 +82,24 @@ impl CombinedDeviceInfo {
                 }
             }
 
+            // Try to find a matching fstab entry
+            let get_dev_fstab_entry = fstab.info.iter().find(|entry| {
+                combined_device // by UUID
+                    .uuids
+                    .as_ref()
+                    .and_then(|uuids| uuids.first())
+                    .map(|uuid| format!("UUID={}", uuid) == entry.device)
+                    .unwrap_or(false)
+                    || combined_device // by label
+                        .label
+                        .as_ref()
+                        .map(|label| format!("LABEL={}", label) == entry.device)
+                        .unwrap_or(false)
+            });
+            if let Some(fstab_entry) = get_dev_fstab_entry {
+                combined_device.fstab_entry = Some(fstab_entry.clone());
+            }
+
             // Same thing for partitions...
             if let Some(parts) = &sys_block.part {
                 for part in parts {
@@ -88,6 +111,7 @@ impl CombinedDeviceInfo {
                         mount_point: None,
                         removable: Some(part.info.removable),
                         uuids: None,
+                        fstab_entry: None,
                     };
 
                     if let Some(dev_part) = dev_disk.info.iter().find(|d| d.name == part.name) {
@@ -100,14 +124,24 @@ impl CombinedDeviceInfo {
                         combined_partition.filesystem = Some(proc_part.fstype.clone());
                     }
 
-                    // if combined_partition.filesystem.is_none() && is_running_with_sudo() {
-                    //     combined_partition.filesystem = get_fstype_from_signature(&part.name);
-                    // }
+                    let get_part_fstab_entry = fstab.info.iter().find(|entry| {
+                        combined_partition // by UUID
+                            .uuids
+                            .as_ref()
+                            .and_then(|uuids| uuids.first())
+                            .map(|uuid| format!("UUID={}", uuid) == entry.device)
+                            .unwrap_or(false)
+                            || combined_partition // by label
+                                .label
+                                .as_ref()
+                                .map(|label| format!("LABEL={}", label) == entry.device)
+                                .unwrap_or(false)
+                    });
+                    if let Some(fstab_entry) = get_part_fstab_entry {
+                        combined_partition.fstab_entry = Some(fstab_entry.clone());
+                    }
 
-                    // Fallback to magic numbers to find filesystem type
-                    if combined_partition.filesystem.is_none()
-                    // && is_running_with_sudo()
-                    {
+                    if combined_partition.filesystem.is_none() {
                         combined_partition.filesystem = match get_fstype_with_magic(&part.name) {
                             Ok(fs_type) => fs_type,
                             Err(e) => {
@@ -154,6 +188,7 @@ impl fmt::Display for CombinedDeviceInfo {
             self.mount_point.as_ref(),
             self.removable,
             self.uuids.as_ref(),
+            self.fstab_entry.as_ref(),
         )?;
 
         // Partition section
@@ -183,6 +218,7 @@ impl fmt::Display for CombinedPartitionInfo {
             self.mount_point.as_ref(),
             self.removable,
             self.uuids.as_ref(),
+            self.fstab_entry.as_ref(),
         )?;
 
         Ok(())
@@ -199,6 +235,7 @@ fn format_common_fields(
     mount_point: Option<&String>,
     removable: Option<bool>,
     uuids: Option<&Vec<String>>,
+    fstab_entry: Option<&Fstab>,
 ) -> fmt::Result {
     if let Some(size) = size {
         writeln!(f, "{indent}• Size: {}", readable_size_from(size))?;
@@ -227,6 +264,35 @@ fn format_common_fields(
             // For FAT filesystems
             writeln!(f, "{indent}• UUID: {} ({})", uuids[0], uuids[1])?;
         }
+    }
+    let extra_indent = "  ";
+    if let Some(fstab_entry) = fstab_entry {
+        writeln!(f, "{indent}• Fstab Entry:")?;
+        writeln!(f, "{indent}{extra_indent}• Device: {}", fstab_entry.device)?;
+        writeln!(
+            f,
+            "{indent}{extra_indent}• Mount Point: {}",
+            fstab_entry.mount_point
+        )?;
+        writeln!(
+            f,
+            "{indent}{extra_indent}• Filesystem: {}",
+            fstab_entry.fs_type
+        )?;
+        writeln!(f, "{indent}{extra_indent}• Options:")?;
+        for option in &fstab_entry.options {
+            writeln!(f, "{indent}{extra_indent}{extra_indent}• {option}")?;
+        }
+        writeln!(
+            f,
+            "{indent}{extra_indent}• Dump Frequency: {}",
+            fstab_entry.dump_freq
+        )?;
+        writeln!(
+            f,
+            "{indent}{extra_indent}• fsck Pass: {}",
+            fstab_entry.fsck_pass
+        )?;
     }
 
     Ok(())

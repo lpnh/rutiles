@@ -18,7 +18,7 @@ use tracing::debug;
 //     >          int   mnt_freq;     /* dump frequency in days */
 //     >          int   mnt_passno;   /* pass number on parallel fsck */
 //     >      };
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Fstab {
     pub device: String,
     pub mount_point: String,
