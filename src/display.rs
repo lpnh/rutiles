@@ -1,6 +1,7 @@
 use std::fmt;
 
 use super::dev_disk::DevDiskInfo;
+use super::fstab::FstabInfo;
 use super::proc_mounts::ProcMountsInfo;
 use super::sys_block::SysBlockInfo;
 
@@ -103,6 +104,30 @@ impl fmt::Display for ProcMountsInfo {
 
             let mount_point = &device.mount_point;
             writeln!(f, "  • Mount Point: {mount_point}")?;
+        }
+
+        Ok(())
+    }
+}
+
+// If you want to implement Display for a collection of Fstab entries
+impl fmt::Display for FstabInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f)?; // Extra line
+        writeln!(f, "from `/etc/fstab`")?;
+        writeln!(f, "=================")?;
+
+        for entry in &self.info {
+            writeln!(f)?; // Extra line
+            writeln!(f, "⛊ {}", entry.device)?;
+            writeln!(f, "  • Mount Point: {}", entry.mount_point)?;
+            writeln!(f, "  • Filesystem: {}", entry.fs_type)?;
+            writeln!(f, "  • Options:")?;
+            for option in &entry.options {
+                writeln!(f, "    • {option}")?;
+            }
+            writeln!(f, "  • Dump Frequency: {}", entry.dump_freq)?;
+            writeln!(f, "  • fsck Pass: {}", entry.fsck_pass)?;
         }
 
         Ok(())

@@ -1,12 +1,14 @@
 mod combined;
 mod dev_disk;
 mod display;
+mod fstab;
 mod magic;
 mod proc_mounts;
 mod sys_block;
 
 use combined::CombinedDeviceInfo;
 use dev_disk::DevDiskInfo;
+use fstab::FstabInfo;
 use proc_mounts::ProcMountsInfo;
 use sys_block::SysBlockInfo;
 
@@ -32,4 +34,8 @@ fn main() {
     for device in combined_device_info {
         println!("{device}");
     }
+
+    let fstab_info = FstabInfo::new().ok().unwrap();
+
+    println!("{fstab_info}");
 }
